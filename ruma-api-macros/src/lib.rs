@@ -3,6 +3,7 @@
 //!
 //! See the documentation for the `ruma_api!` macro for usage details.
 
+#![feature(bool_to_option)]
 #![deny(
     missing_copy_implementations,
     missing_debug_implementations,

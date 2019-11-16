@@ -257,7 +257,7 @@ impl ToTokens for Request {
             TokenStream::new()
         };
 
-        let request_path_struct = if self.has_path_fields() {
+        let request_path_struct = self.has_path_fields().then_with(|| {
             let fields = self.fields.iter().filter_map(RequestField::as_path_field);
 
             quote! {
@@ -271,11 +271,9 @@ impl ToTokens for Request {
                     #(#fields),*
                 }
             }
-        } else {
-            TokenStream::new()
-        };
+        });
 
-        let request_query_struct = if self.has_query_fields() {
+        let request_query_struct = self.has_query_fields().then_with(|| {
             let fields = self.fields.iter().filter_map(RequestField::as_query_field);
 
             quote! {
@@ -289,9 +287,7 @@ impl ToTokens for Request {
                     #(#fields),*
                 }
             }
-        } else {
-            TokenStream::new()
-        };
+        });
 
         let request = quote! {
             #request_struct_header
@@ -397,11 +393,7 @@ impl RequestField {
 
     /// Gets the inner `Field` value if it's of the provided kind.
     fn field_of_kind(&self, kind: RequestFieldKind) -> Option<&Field> {
-        if self.kind() == kind {
-            Some(self.field())
-        } else {
-            None
-        }
+        (self.kind() == kind).then_with(|| self.field())
     }
 }
 

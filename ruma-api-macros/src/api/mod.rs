@@ -135,7 +135,7 @@ impl ToTokens for Api {
             }
         };
 
-        let set_request_query = if self.request.has_query_fields() {
+        let set_request_query = self.request.has_query_fields().then_with(|| {
             let request_query_init_fields = self.request.request_query_init_fields();
 
             quote! {
@@ -147,19 +147,15 @@ impl ToTokens for Api {
                     request_query,
                 )?));
             }
-        } else {
-            TokenStream::new()
-        };
+        });
 
-        let add_headers_to_request = if self.request.has_header_fields() {
+        let add_headers_to_request = self.request.has_header_fields().then_with(|| {
             let add_headers = self.request.add_headers_to_request();
             quote! {
                 let headers = http_request.headers_mut();
                 #add_headers
             }
-        } else {
-            TokenStream::new()
-        };
+        });
 
         let create_http_request = if let Some(field) = self.request.newtype_body_field() {
             let field_name = field.ident.as_ref().expect("expected field to have an identifier");
@@ -210,19 +206,16 @@ impl ToTokens for Api {
             }
         };
 
-        let extract_response_headers = if self.response.has_header_fields() {
+        let extract_response_headers = self.response.has_header_fields().then_with(|| {
             quote! {
                 let mut headers = http_response.headers().clone();
             }
-        } else {
-            TokenStream::new()
-        };
+        });
 
-        let response_init_fields = if self.response.has_fields() {
-            self.response.init_fields()
-        } else {
-            TokenStream::new()
-        };
+        let response_init_fields = self
+            .response
+            .has_fields()
+            .then_with(|| self.response.init_fields());
 
         let request_doc = format!(
             "Data for a request to the `{}` API endpoint.\n\n{}",

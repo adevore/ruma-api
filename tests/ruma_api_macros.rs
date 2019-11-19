@@ -1,5 +1,6 @@
-pub mod some_endpoint {
+/*pub mod some_endpoint {
     use ruma_api::ruma_api;
+    use ruma_events::{tag::TagEventContent, EventResult};
 
     ruma_api! {
         metadata {
@@ -36,9 +37,13 @@ pub mod some_endpoint {
 
             // With no attribute on the field, it will be extracted from the body of the response.
             pub value: String,
+
+            /// The user's tags for the room.
+            #[wrap_incoming(with EventResult)]
+            pub tags: TagEventContent,
         }
     }
-}
+}*/
 
 pub mod newtype_body_endpoint {
     use ruma_api_macros::ruma_api;

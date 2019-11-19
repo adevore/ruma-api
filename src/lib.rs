@@ -28,7 +28,7 @@ use serde_json;
 use serde_urlencoded;
 
 #[cfg(feature = "with-ruma-api-macros")]
-pub use ruma_api_macros::ruma_api;
+pub use ruma_api_macros::{ruma_api, SendRecv};
 
 #[cfg(feature = "with-ruma-api-macros")]
 #[doc(hidden)]
@@ -43,15 +43,25 @@ pub mod exports {
     pub use url;
 }
 
+/// A type that can be sent as well as received. Types that implement this trait have a
+/// corresponding 'Incoming' type, which is either just `Self`, or another type that has the same
+/// fields with some types exchanged by ones that allow fallible deserialization, e.g. `EventResult`
+/// from ruma_events.
+pub trait SendRecv {
+    /// The 'Incoming' variant of `Self`.
+    type Incoming;
+}
+
 /// A Matrix API endpoint.
 ///
 /// The type implementing this trait contains any data needed to make a request to the endpoint.
-pub trait Endpoint:
-    TryFrom<http::Request<Vec<u8>>, Error = Error> + TryInto<http::Request<Vec<u8>>, Error = Error>
+pub trait Endpoint: SendRecv + TryInto<http::Request<Vec<u8>>, Error = Error>
+where
+    <Self as SendRecv>::Incoming: TryFrom<http::Request<Vec<u8>>, Error = Error>,
+    <Self::Response as SendRecv>::Incoming: TryFrom<http::Response<Vec<u8>>, Error = Error>,
 {
     /// Data returned in a successful response from the endpoint.
-    type Response: TryFrom<http::Response<Vec<u8>>, Error = Error>
-        + TryInto<http::Response<Vec<u8>>, Error = Error>;
+    type Response: SendRecv + TryInto<http::Response<Vec<u8>>, Error = Error>;
 
     /// Metadata about the endpoint.
     const METADATA: Metadata;
@@ -186,13 +196,17 @@ mod tests {
         use serde::{de::IntoDeserializer, Deserialize, Serialize};
         use serde_json;
 
-        use crate::{Endpoint, Error, Metadata};
+        use crate::{Endpoint, Error, Metadata, SendRecv};
 
         /// A request to create a new room alias.
         #[derive(Debug)]
         pub struct Request {
             pub room_id: RoomId,         // body
             pub room_alias: RoomAliasId, // path
+        }
+
+        impl SendRecv for Request {
+            type Incoming = Self;
         }
 
         impl Endpoint for Request {
@@ -257,6 +271,10 @@ mod tests {
         /// The response to a request to create a new room alias.
         #[derive(Clone, Copy, Debug)]
         pub struct Response;
+
+        impl SendRecv for Response {
+            type Incoming = Self;
+        }
 
         impl TryFrom<http::Response<Vec<u8>>> for Response {
             type Error = Error;

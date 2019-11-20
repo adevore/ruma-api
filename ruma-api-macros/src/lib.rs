@@ -195,6 +195,11 @@ mod send_recv;
 ///     }
 /// }
 /// ```
+///
+/// ## Fallible deserialization
+///
+/// There's another attribute that can be put on fields in the request and response blocks:
+/// `#[wrap_incoming]`.
 #[proc_macro]
 pub fn ruma_api(input: TokenStream) -> TokenStream {
     let raw_api = parse_macro_input!(input as RawApi);
